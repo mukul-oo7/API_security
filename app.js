@@ -9,17 +9,19 @@ const app = express();
 
 connectDb();
 
-require('./models/apiModels');
+require('./models/apiModel');
 require('./models/User');
+require('./models/securityGroup');
 
 const TARGET = 'http://localhost:3000';
 
 // app.use(cors());
-app.use(logRegisteredApiCall);
+// app.use(logRegisteredApiCall);
 app.use(requestLogger);
 
 app.use('/shield', express.json());
 app.use('/shield', require('./routes/auth'));
+app.use('/shield', require('./routes/api'));
 
 const proxyMiddleware = createProxyMiddleware({
   target: TARGET,

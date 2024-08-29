@@ -44,6 +44,7 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { userName, password } = req.body;
+    console.log(userName, password);
 
     if(!userName || !password){
       return res.status(400).send({message: 'please provide your userName and password'});
@@ -70,8 +71,8 @@ router.post('/login', async (req, res) => {
 
     jwt.sign(
       payload,
-      'flipkartGrid',
-      { expiresIn: '1h' },
+      process.env.JWT_SECRET,
+      { expiresIn: '6h' },
       (err, token) => {
         if (err) throw err;
         res.json({ token });

@@ -1,4 +1,4 @@
-const { ApiEndpoint, ApiCall } = require('../models/apiModels');
+const { ApiEndpoint, ApiCall } = require('../models/apiModel');
 
 const logRegisteredApiCall = async (req, res, next) => {
   const startTime = Date.now();
