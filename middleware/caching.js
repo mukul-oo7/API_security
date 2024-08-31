@@ -4,7 +4,7 @@ const NodeCache = require('node-cache');
 // Create a new cache instance
 const cache = new NodeCache({ stdTTL: 300 }); // Default TTL: 5 minutes
 
-const cachingMiddleware = async (req, res, next) => {
+const caching = async (req, res, next) => {
   const path = req.path;
   const method = req.method;
   const apiEndpoint = await ApiEndpoint.findOne({ method, path });
@@ -40,4 +40,4 @@ function generateCacheKey(req) {
   return `${method}:${path}:${JSON.stringify(query)}:${JSON.stringify(body)}`;
 }
 
-module.exports = cachingMiddleware;
+module.exports = caching;

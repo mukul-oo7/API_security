@@ -1,7 +1,7 @@
 const url = require('url');
 const querystring = require('querystring');
 
-const sqlInjectionMiddleware = (req, res, next) => {
+const sqlInjectionCheck = (req, res, next) => {
   // List of SQL keywords and characters to check for
   const sqlPatterns = [
     'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'UNION', 
@@ -51,4 +51,4 @@ const sqlInjectionMiddleware = (req, res, next) => {
   });
 };
 
-module.exports = sqlInjectionMiddleware;
+module.exports = sqlInjectionCheck;

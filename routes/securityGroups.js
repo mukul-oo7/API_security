@@ -88,7 +88,27 @@ async function removeRuleFromSecurityGroup(securityGroup, ruleId) {
 router.get('/securitygroups', async (req, res) => {
   try {
       // Find all security groups, projecting only the _id and description fields
-      const securityGroups = await SecurityGroup.find({}, 'description _id name apis rules');
+      const securityGroups = await SecurityGroup.aggregate([
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            description: 1,
+            apis: {
+              $map: {
+                input: "$apis",
+                as: "api",
+                in: {
+                  _id: "$$api._id",
+                  path: "$$api.path",
+                  request_methods: "$$api.request_methods"
+                }
+              }
+            },
+            rules: 1
+          }
+        }
+      ]);
       const apiList = await ApiEndpoint.find({}, 'path request_methods _id');
       const ruleList = await Rule.find({}, 'name _id');
       res.status(200).json({
@@ -141,7 +161,7 @@ router.post('/security-group/:groupId/rule', async (req, res) => {
     }
     await addRuleToSecurityGroup(group, ruleId);
     await group.save();
-    res.status(200).json(group);
+    res.status(200).json({ message: "Rules succesfully added"});
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
