@@ -1,61 +1,174 @@
-const { ApiEndpoint, ApiCall } = require('../models/apiModel');
+const { ApiEndpoint, ApiCall } = require('../models/apiModel');  // Adjust the path as needed
 
-const logRegisteredApiCall = async (req, res, next) => {
+const apiLoggerMiddleware = async (req, res, next) => {
   const startTime = Date.now();
-  const fullPath = `${req.baseUrl}${req.path}`;
+  const method = req.method;
+  const fullPath = req.originalUrl;
+  const baseUrl = req.get('host');
 
-  res.on('finish', async () => {
-    const endTime = Date.now();
-    const responseTime = endTime - startTime;
+  // Capture the original end function
+  const originalEnd = res.end;
 
-    // console.log(`${req.baseUrl}, ${req.path}`);
+  // Override the end function
+  res.end = function (chunk, encoding) {
+    // Calculate response time
+    const responseTime = Date.now() - startTime;
 
-    // Check if the API endpoint is registered
-    let registeredEndpoint = await ApiEndpoint.findOne({ path: fullPath });
+    // Restore original end function
+    res.end = originalEnd;
 
-    if (!registeredEndpoint) {
-      // Create a new endpoint if it's not registered
-      const newApiEndpoint = new ApiEndpoint({
-        path: fullPath,
-        description: 'Auto-generated endpoint',
-        request_methods: [req.method],
-        base_url: `${req.protocol}://${req.get('host')}/`,
-      });
+    // Call the original end function
+    res.end(chunk, encoding);
 
+    // Perform logging after response has been sent
+    (async () => {
       try {
-        registeredEndpoint = await newApiEndpoint.save();
-        console.log(`New API endpoint registered: ${fullPath}`);
-      } catch (error) {
-        console.error(`Error registering new API endpoint: ${error.message}`);
-      }
-    }
+        // Find the API endpoint
+        let endpoint = await ApiEndpoint.findOne({ path: fullPath, request_methods: method });
 
-    const apiCall = new ApiCall({
-      endpoint: fullPath,
-      responseTime,
-      statusCode: res.statusCode,
-      error: res.statusCode >= 400,
-      errorMessage: res.statusCode >= 400 ? res.statusMessage : null
-    });
+        if (endpoint) {
+          const statusCode = res.statusCode;
+          endpoint.hitsByStatusCode.set(statusCode.toString(), (endpoint.hitsByStatusCode.get(statusCode.toString()) || 0) + 1);
+          await endpoint.save();
+        } else if (res.statusCode < 400) {  // Only create new API for successful responses
+          // Create a new API endpoint
+          endpoint = new ApiEndpoint({
+            path: fullPath,
+            base_url: baseUrl,
+            request_methods: method,
+            description: 'Automatically created by logger',
+            query_parameters: Object.keys(req.query),
+            path_parameters: req.params ? Object.keys(req.params) : [],
+            request_header: Object.keys(req.headers),
+            request_body: req.body ? Object.keys(req.body) : [],
+            response_structure: res.locals.responseBody ? Object.keys(res.locals.responseBody) : [],
+            version: "v1.0",
+            is_new: true,
+            release_date: new Date(),
+            last_updated: new Date()
+          });
 
-    try {
-      await apiCall.save();
-
-      // Update hitsByStatusCode in ApiEndpoint
-      await ApiEndpoint.findOneAndUpdate(
-        { path: fullPath },
-        { 
-          $inc: { [`hitsByStatusCode.${res.statusCode}`]: 1 },
-          $set: { last_updated: new Date() }
+          console.log("new api created: ", endpoint.path);
+          await endpoint.save();
         }
-      );
-    } catch (error) {
-      console.error(`Error logging API call: ${error.message}`);
-    }
-  });
+
+        // Create and save API call log
+        if (endpoint) {
+          const apiCall = new ApiCall({
+            endpoint: endpoint._id,
+            responseTime: responseTime,
+            statusCode: res.statusCode,
+            error: res.statusCode >= 400,
+            errorMessage: res.statusCode >= 400 ? res.statusMessage : undefined
+          });
+          await apiCall.save();
+        }
+      } catch (error) {
+        console.error('Error in API logger middleware:', error);
+      }
+    })();
+  };
 
   next();
 };
+
+module.exports = apiLoggerMiddleware;
+
+
+
+// const { ApiEndpoint, ApiCall } = require('../models/apiModel');
+// const mongoose = require('mongoose');
+
+// const ApiCall = mongoose.model('ApiCall');
+// const ApiEndpoint = mongoose.model('ApiEndpoint');
+
+// const apiLoggerMiddleware = async (req, res, next) => {
+//   const startTime = Date.now();
+
+//   // Capture the original end function
+//   const originalEnd = res.end;
+
+//   // Override the end function
+//   res.end = function (chunk, encoding) {
+//     // Calculate response time
+//     const responseTime = Date.now() - startTime;
+
+//     // Restore the original end function
+//     res.end = originalEnd;
+
+//     // Call the original end function
+//     res.end(chunk, encoding);
+
+//     // Log the API call
+//     logApiCall(req, res, responseTime);
+//   };
+
+//   next();
+// };
+
+// async function logApiCall(req, res, responseTime) {
+//   const { method, baseUrl, path } = req;
+//   const fullPath = baseUrl + path;
+//   const statusCode = res.statusCode;
+
+//   try {
+//     // Only proceed if the status code is not 404
+//     if (statusCode !== 404) {
+//       let endpoint = await ApiEndpoint.findOne({
+//         path: fullPath,
+//         request_methods: method
+//       });
+
+//       if (endpoint) {
+//         // Update hits by status code for existing endpoint
+//         const statusCodeStr = statusCode.toString();
+//         endpoint.hitsByStatusCode.set(statusCodeStr, (endpoint.hitsByStatusCode.get(statusCodeStr) || 0) + 1);
+        
+//         // Add any new response codes
+//         if (!endpoint.response_codes.includes(statusCode)) {
+//           endpoint.response_codes.push(statusCode);
+//         }
+
+//         await endpoint.save();
+//       } else {
+//         // Create new endpoint
+//         endpoint = new ApiEndpoint({
+//           path: fullPath,
+//           base_url: req.get('host'),
+//           request_methods: method,
+//           description: 'Automatically created by logger',
+//           query_parameters: Object.keys(req.query),
+//           path_parameters: req.params ? Object.keys(req.params) : [],
+//           request_header: Object.keys(req.headers),
+//           request_body: req.body ? Object.keys(req.body) : [],
+//           response_structure: res.locals.responseBody ? Object.keys(res.locals.responseBody) : [],
+//           version: "v1.0",
+//           is_new: true,
+//           release_date: new Date(),
+//           last_updated: new Date()
+//         });
+
+//         await endpoint.save();
+//         console.log(`Unregistered API call: ${method} ${fullPath} - ${statusCode}`);
+//       }
+
+//       // Log the API call
+//       const apiCall = await ApiCall.create({
+//         endpoint: endpoint._id,  // Use the ObjectId reference
+//         responseTime,
+//         statusCode,
+//         error: statusCode >= 400,
+//         errorMessage: statusCode >= 400 ? res.locals.errorMessage : undefined
+//       });
+
+//       console.log(`Logged API call: ${method} ${fullPath} - ${statusCode} - ${responseTime}ms`);
+//     } else {
+//       console.log(`404 Not Found: ${method} ${fullPath}`);
+//     }
+//   } catch (error) {
+//     console.error('Error in API logger middleware:', error);
+//   }
+// }
 
 const requestLogger = (req, res, next) => {
   const startTime = new Date();
@@ -71,5 +184,5 @@ const requestLogger = (req, res, next) => {
 
 module.exports = {
   requestLogger, 
-  logRegisteredApiCall
-}
+  apiLoggerMiddleware
+};

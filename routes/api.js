@@ -145,7 +145,7 @@ router.get('/api-hpm', authMiddleware, async (req, res) => {
 
 
 // Main route handler
-router.get('/api-stats', authMiddleware, async (req, res) => {
+router.get('/stats', authMiddleware, async (req, res) => {
   try {
     // Get all API endpoints
     const apiEndpoints = await ApiEndpoint.find();
@@ -174,7 +174,8 @@ router.get('/api-stats', authMiddleware, async (req, res) => {
       base_url: api.base_url,
       hit_count: await getHitCount(api._id),
       avg_response_time: await getAvgResponseTime(api._id),
-      isNew: api.is_new
+      isNew: api.is_new,
+      _id: api._id
     })));
 
     // Prepare final response
@@ -192,5 +193,24 @@ router.get('/api-stats', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// router.get("/init", async (req, res) => {
+//   try {
+//     // Update all documents by setting rate_limit_pm to 20
+//     const result = await ApiEndpoint.updateMany(
+//       {}, // Empty filter object means all documents
+//       { rate_limit_pm: 20, last_updated: Date.now() } // The update to apply to all documents
+//     );
+
+//     console.log(`Rate limit updated for ${result.nModified} endpoints.`);
+    
+//     return res.status(200).send({message: "successfull update"});
+//   } catch (error) {
+//     console.error('Error updating rate limit for all endpoints:', error.message);
+    
+//     return res.status(500).send({message: "internal server error"});
+//   }
+
+// });
 
 module.exports = router;

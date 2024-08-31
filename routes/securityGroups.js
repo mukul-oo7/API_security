@@ -59,6 +59,29 @@ async function addRuleToSecurityGroup(securityGroup, ruleId) {
   }
 }
 
+// Function to remove an API from a security group
+async function removeApiFromSecurityGroup(securityGroup, apiId) {
+  try {
+    securityGroup.apis = securityGroup.apis.filter(api => api._id.toString() !== apiId);
+    await securityGroup.save();
+  } catch (error) {
+    console.error('Error removing API from security group:', error);
+    throw error;
+  }
+}
+
+// Function to remove a rule from a security group
+async function removeRuleFromSecurityGroup(securityGroup, ruleId) {
+  try {
+    securityGroup.rules = securityGroup.rules.filter(rule => rule._id.toString() !== ruleId);
+    await securityGroup.save();
+  } catch (error) {
+    console.error('Error removing rule from security group:', error);
+    throw error;
+  }
+}
+
+
 // Route to create a new security group
 router.post('/security-group', async (req, res) => {
   try {
@@ -98,6 +121,36 @@ router.post('/security-group/:groupId/rule', async (req, res) => {
     }
     await addRuleToSecurityGroup(group, ruleId);
     await group.save();
+    res.status(200).json(group);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Route to remove an API from a security group
+router.delete('/security-group/:groupId/api/:apiId', async (req, res) => {
+  try {
+    const { groupId, apiId } = req.params;
+    const group = await SecurityGroup.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Security group not found' });
+    }
+    await removeApiFromSecurityGroup(group, apiId);
+    res.status(200).json(group);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Route to remove a rule from a security group
+router.delete('/security-group/:groupId/rule/:ruleId', async (req, res) => {
+  try {
+    const { groupId, ruleId } = req.params;
+    const group = await SecurityGroup.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Security group not found' });
+    }
+    await removeRuleFromSecurityGroup(group, ruleId);
     res.status(200).json(group);
   } catch (error) {
     res.status(400).json({ message: error.message });

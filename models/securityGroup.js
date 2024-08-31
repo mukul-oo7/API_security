@@ -37,8 +37,8 @@ const SecurityGroupSchema = new mongoose.Schema({
   rules: [RuleSchema]
 }, { timestamps: true });
 
-const Rule = mongoose.model('Rule', RuleSchema);
-const SecurityGroup = mongoose.model('SecurityGroup', SecurityGroupSchema);
+const Rule = mongoose.model('rules', RuleSchema);
+const SecurityGroup = mongoose.model('securitygroups', SecurityGroupSchema);
 
 module.exports = { 
     Rule, 

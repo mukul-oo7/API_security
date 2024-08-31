@@ -1,8 +1,0 @@
-const RATE_LIMIT_WINDOW_MS = 60000
-const REQUEST_LIMIT = 1000
-
-
-module.exports = {
-    RATE_LIMIT_WINDOW_MS,
-    REQUEST_LIMIT,
-}
