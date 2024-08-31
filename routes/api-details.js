@@ -11,23 +11,51 @@ const get24HoursAgo = () => {
 };
 
 // 1. API Usage Over Time
-async function getApiUsageOverTime(apiId) {
+// async function getApiUsageOverTime(apiId) {
+//   const twentyFourHoursAgo = get24HoursAgo();
+//   return await ApiCall.aggregate([
+//     { $match: { 
+//       endpoint: new mongoose.Types.ObjectId(apiId),
+//       timestamp: { $gte: twentyFourHoursAgo } 
+//     }},
+//     {
+//       $group: {
+//         _id: { $dateToString: { format: "%Y-%m-%d %H:00", date: "$timestamp" } },
+//         count: { $sum: 1 }
+//       }
+//     },
+//     { $sort: { _id: 1 } },
+//     { $project: { timestamp: "$_id", count: 1, _id: 0 } }
+//   ]);
+// }
+
+async function getApiUsagePerMinute(apiId) {
   const twentyFourHoursAgo = get24HoursAgo();
+  
   return await ApiCall.aggregate([
-    { $match: { 
-      endpoint: new mongoose.Types.ObjectId(apiId),
-      timestamp: { $gte: twentyFourHoursAgo } 
-    }},
+    {
+      $match: { 
+        endpoint: new mongoose.Types.ObjectId(apiId),
+        timestamp: { $gte: twentyFourHoursAgo } 
+      }
+    },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d %H:00", date: "$timestamp" } },
+        _id: { $dateToString: { format: "%Y-%m-%d %H:%M", date: "$timestamp" } },
         count: { $sum: 1 }
       }
     },
     { $sort: { _id: 1 } },
-    { $project: { timestamp: "$_id", count: 1, _id: 0 } }
+    { 
+      $project: { 
+        timestamp: "$_id", 
+        count: 1, 
+        _id: 0 
+      } 
+    }
   ]);
 }
+
 
 // 2. Error Rate Over Time
 async function getErrorRateOverTime(apiId) {
@@ -125,7 +153,7 @@ router.get('/api-stats', async (req, res) => {
     }
 
     const [apiUsage, errorRate, avgResponseTime, responseCodeBreakdown] = await Promise.all([
-      getApiUsageOverTime(apiId),
+      getApiUsagePerMinute(apiId),
       getErrorRateOverTime(apiId),
       getAvgResponseTimeOverTime(apiId),
       getResponseCodeBreakdown(apiId)
