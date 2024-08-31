@@ -140,6 +140,55 @@ async function getResponseCodeBreakdown(apiId) {
   ]);
 }
 
+async function getApiDetails(apiId) {
+  try {
+    // Fetch the API endpoint details
+    const apiEndpoint = await ApiEndpoint.findById(apiId);
+    if (!apiEndpoint) {
+      throw new Error('API endpoint not found');
+    }
+
+    // Fetch API calls for this endpoint
+    const apiCalls = await ApiCall.find({ endpoint: apiId });
+
+    // Calculate average response time
+    const totalResponseTime = apiCalls.reduce((sum, call) => sum + (call.responseTime || 0), 0);
+    const avgResponseTime = apiCalls.length > 0 ? totalResponseTime / apiCalls.length : 0;
+
+    // Calculate error rate
+    const errorCalls = apiCalls.filter(call => call.error);
+    const errorRate = apiCalls.length > 0 ? (errorCalls.length / apiCalls.length) * 100 : 0;
+
+    // Calculate total number of hits
+    const totalHits = apiCalls.length;
+
+    return {
+      apiName: apiEndpoint.path.split('/').pop(), // Assuming the last part of the path is the API name
+      version: apiEndpoint.version,
+      baseUrl: apiEndpoint.base_url,
+      description: apiEndpoint.description,
+      queryParameters: apiEndpoint.query_parameters,
+      requestMethod: apiEndpoint.request_methods,
+      requestHeader: apiEndpoint.request_header,
+      requestBody: apiEndpoint.request_body,
+      responseStructure: apiEndpoint.response_structure,
+      averageResponseTime: avgResponseTime.toFixed(2) + ' ms',
+      rateLimit: apiEndpoint.rate_limit_pm,
+      numberOfHits: totalHits,
+      errorRate: errorRate.toFixed(2) + '%',
+      lastUpdated: apiEndpoint.last_updated,
+      releaseDate: apiEndpoint.release_date,
+      sensitiveDataIndicator: apiEndpoint.sensitive_data.length > 0,
+      sensitiveData: apiEndpoint.sensitive_data,
+      protectionAgainst: apiEndpoint.protection_against,
+      requestMethods: apiEndpoint.request_methods
+    };
+  } catch (error) {
+    console.error('Error fetching API details:', error);
+    throw error;
+  }
+}
+
 // Route to get stats for a specific API
 router.get('/api-stats', async (req, res) => {
   try {
@@ -152,14 +201,18 @@ router.get('/api-stats', async (req, res) => {
       return res.status(400).json({ error: 'Invalid API ID' });
     }
 
-    const [apiUsage, errorRate, avgResponseTime, responseCodeBreakdown] = await Promise.all([
+    const [apiDetails, apiUsage, errorRate, avgResponseTime, responseCodeBreakdown] = await Promise.all([
+      getApiDetails(apiId),
       getApiUsagePerMinute(apiId),
       getErrorRateOverTime(apiId),
       getAvgResponseTimeOverTime(apiId),
       getResponseCodeBreakdown(apiId)
     ]);
 
+    console.log(apiDetails);
+
     res.json({
+      apiDetails,
       apiUsage,
       errorRate,
       avgResponseTime,
