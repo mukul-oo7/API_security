@@ -20,6 +20,7 @@ const RuleSchema = new mongoose.Schema({
   }
 });
 
+
 // Define the SecurityGroup schema
 const SecurityGroupSchema = new mongoose.Schema({
   name: {

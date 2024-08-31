@@ -26,6 +26,7 @@ app.use('/shield', express.json());
 app.use('/shield', require('./routes/auth'));
 app.use('/shield', require('./routes/api'));
 app.use('/shield', require('./routes/api-details'));
+app.use('/shield', require('./routes/securityGroups'));
 
 const proxyMiddleware = createProxyMiddleware({
   target: TARGET,
@@ -42,7 +43,7 @@ const proxyMiddleware = createProxyMiddleware({
 
 // app.use('/', apiValidationMiddleware);
 // app.use('/', rateLimitMiddleware);
-app.use('/', cachingMiddleware);
+// app.use('/', cachingMiddleware);
 // app.use('/', sqlInjectionMiddleware);
 app.use('/', apiLoggerMiddleware);
 app.use('/', proxyMiddleware);
