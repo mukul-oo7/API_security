@@ -25,6 +25,7 @@ const ApiEndpointSchema = new Schema({
   release_date: { type: Date, default: Date.now },
   last_updated: { type: Date, default: Date.now },
   protection_against: [{ type: String }],
+  security_groups: [{type: String}],
   hitsByStatusCode: {
     type: Map,
     of: Number,

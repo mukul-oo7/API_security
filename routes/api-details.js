@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { ApiCall, ApiEndpoint } = require('../models/apiModel');
 const mongoose = require('mongoose');
+const { SecurityGroup } = require('../models/securityGroup');
 
 // Helper function to get date 24 hours ago
 const get24HoursAgo = () => {
@@ -181,7 +182,11 @@ async function getApiDetails(apiId) {
       sensitiveDataIndicator: apiEndpoint.sensitive_data.length > 0,
       sensitiveData: apiEndpoint.sensitive_data,
       protectionAgainst: apiEndpoint.protection_against,
-      requestMethods: apiEndpoint.request_methods
+      requestMethods: apiEndpoint.request_methods,
+      securityGroup: apiEndpoint.security_groups,
+      allowSecuredIpOnly: apiEndpoint.allow_secured_ip_only,
+      whiteList: apiEndpoint.whitelist,
+      blackList: apiEndpoint.blacklist,
     };
   } catch (error) {
     console.error('Error fetching API details:', error);
