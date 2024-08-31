@@ -39,7 +39,7 @@ async function addApiToSecurityGroup(securityGroup, apiId) {
       throw new Error('API not found');
     }
     securityGroup.apis.push(api);
-    api.security_groups.push(securityGroup._id);
+    api.security_groups.push(securityGroup.name);
 
     await api.save();
   } catch (error) {

@@ -194,23 +194,20 @@ router.get('/stats', authMiddleware, async (req, res) => {
   }
 });
 
-// router.get("/init", async (req, res) => {
-//   try {
-//     // Update all documents by setting rate_limit_pm to 20
-//     const result = await ApiEndpoint.updateMany(
-//       {}, // Empty filter object means all documents
-//       { rate_limit_pm: 20, last_updated: Date.now() } // The update to apply to all documents
-//     );
+router.get("/init", async (req, res) => {
+  try {
+    // Update all documents by setting rate_limit_pm to 20
+    const result = await ApiEndpoint.updateMany({}, { $set: { security_groups: [] } });
+  	
+    console.log(result);
 
-//     console.log(`Rate limit updated for ${result.nModified} endpoints.`);
+    return res.status(200).send({message: "successfull update"});
+  } catch (error) {
+    console.error('Error updating rate limit for all endpoints:', error.message);
     
-//     return res.status(200).send({message: "successfull update"});
-//   } catch (error) {
-//     console.error('Error updating rate limit for all endpoints:', error.message);
-    
-//     return res.status(500).send({message: "internal server error"});
-//   }
+    return res.status(500).send({message: "internal server error"});
+  }
 
-// });
+});
 
 module.exports = router;

@@ -214,8 +214,6 @@ router.get('/api-stats', async (req, res) => {
       getResponseCodeBreakdown(apiId)
     ]);
 
-    console.log(apiDetails);
-
     res.json({
       apiDetails,
       apiUsage,
@@ -228,5 +226,121 @@ router.get('/api-stats', async (req, res) => {
     res.status(500).json({ error: 'An error occurred while fetching API stats' });
   }
 });
+
+
+// Add to whitelist
+router.post('/api-endpoint/:id/whitelist', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ip } = req.body;
+
+    if (!ip) {
+      return res.status(400).json({ error: 'IP address is required' });
+    }
+
+    const apiEndpoint = await ApiEndpoint.findById(id);
+    if (!apiEndpoint) {
+      return res.status(404).json({ error: 'API Endpoint not found' });
+    }
+
+    if (apiEndpoint.whitelist.includes(ip)) {
+      return res.status(400).json({ error: 'IP already in whitelist' });
+    }
+
+    apiEndpoint.whitelist.push(ip);
+    await apiEndpoint.save();
+
+    res.status(200).json({ message: 'IP added to whitelist', whitelist: apiEndpoint.whitelist });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+});
+
+// Remove from whitelist
+router.delete('/api-endpoint/:id/whitelist', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ip } = req.body;
+
+    if (!ip) {
+      return res.status(400).json({ error: 'IP address is required' });
+    }
+
+    const apiEndpoint = await ApiEndpoint.findById(id);
+    if (!apiEndpoint) {
+      return res.status(404).json({ error: 'API Endpoint not found' });
+    }
+
+    const index = apiEndpoint.whitelist.indexOf(ip);
+    if (index === -1) {
+      return res.status(400).json({ error: 'IP not found in whitelist' });
+    }
+
+    apiEndpoint.whitelist.splice(index, 1);
+    await apiEndpoint.save();
+
+    res.status(200).json({ message: 'IP removed from whitelist', whitelist: apiEndpoint.whitelist });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+});
+
+// Add to blacklist
+router.post('/api-endpoint/:id/blacklist', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ip } = req.body;
+
+    if (!ip) {
+      return res.status(400).json({ error: 'IP address is required' });
+    }
+
+    const apiEndpoint = await ApiEndpoint.findById(id);
+    if (!apiEndpoint) {
+      return res.status(404).json({ error: 'API Endpoint not found' });
+    }
+
+    if (apiEndpoint.blacklist.includes(ip)) {
+      return res.status(400).json({ error: 'IP already in blacklist' });
+    }
+
+    apiEndpoint.blacklist.push(ip);
+    await apiEndpoint.save();
+
+    res.status(200).json({ message: 'IP added to blacklist', blacklist: apiEndpoint.blacklist });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+});
+
+// Remove from blacklist
+router.delete('/api-endpoint/:id/blacklist', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ip } = req.body;
+
+    if (!ip) {
+      return res.status(400).json({ error: 'IP address is required' });
+    }
+
+    const apiEndpoint = await ApiEndpoint.findById(id);
+    if (!apiEndpoint) {
+      return res.status(404).json({ error: 'API Endpoint not found' });
+    }
+
+    const index = apiEndpoint.blacklist.indexOf(ip);
+    if (index === -1) {
+      return res.status(400).json({ error: 'IP not found in blacklist' });
+    }
+
+    apiEndpoint.blacklist.splice(index, 1);
+    await apiEndpoint.save();
+
+    res.status(200).json({ message: 'IP removed from blacklist', blacklist: apiEndpoint.blacklist });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error', details: error.message });
+  }
+});
+
 
 module.exports = router;

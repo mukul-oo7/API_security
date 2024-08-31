@@ -24,8 +24,11 @@ const apiLoggerMiddleware = async (req, res, next) => {
     (async () => {
       try {
         // Find the API endpoint
-        let endpoint = await ApiEndpoint.findOne({ path: fullPath, request_methods: method });
-
+        let endpoint = await ApiEndpoint.findOne({
+          path: { $regex: new RegExp('^' + fullPath.replace(/\/[^\/]+/g, '/[^/]+')) },
+          request_methods: method
+        });
+      
         if (endpoint) {
           const statusCode = res.statusCode;
           endpoint.hitsByStatusCode.set(statusCode.toString(), (endpoint.hitsByStatusCode.get(statusCode.toString()) || 0) + 1);
