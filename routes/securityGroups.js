@@ -38,8 +38,8 @@ async function addApiToSecurityGroup(securityGroup, apiId) {
     if (!api) {
       throw new Error('API not found');
     }
-    securityGroup.apis.push(api);
     api.security_groups.push(securityGroup.name);
+    securityGroup.apis.push(api);
 
     await api.save();
   } catch (error) {
@@ -88,7 +88,7 @@ async function removeRuleFromSecurityGroup(securityGroup, ruleId) {
 router.get('/securitygroups', async (req, res) => {
   try {
       // Find all security groups, projecting only the _id and description fields
-      const securityGroups = await SecurityGroup.find({}, 'description _id name');
+      const securityGroups = await SecurityGroup.find({}, 'description _id name apis rules');
       res.status(200).json(securityGroups);
   } catch (error) {
       res.status(500).json({ error: 'An error occurred while fetching security groups' });

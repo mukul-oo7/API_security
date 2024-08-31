@@ -197,11 +197,9 @@ router.get('/stats', authMiddleware, async (req, res) => {
 router.get("/init", async (req, res) => {
   try {
     // Update all documents by setting rate_limit_pm to 20
-    const result = await ApiEndpoint.updateMany({}, { $set: { security_groups: [] } });
-  	
-    console.log(result);
+    const endpoints = await ApiEndpoint.find({}, 'path _id');  	
 
-    return res.status(200).send({message: "successfull update"});
+    return res.status(200).send({endpoints});
   } catch (error) {
     console.error('Error updating rate limit for all endpoints:', error.message);
     

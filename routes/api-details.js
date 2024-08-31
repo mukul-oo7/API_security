@@ -11,25 +11,6 @@ const get24HoursAgo = () => {
   return date;
 };
 
-// 1. API Usage Over Time
-// async function getApiUsageOverTime(apiId) {
-//   const twentyFourHoursAgo = get24HoursAgo();
-//   return await ApiCall.aggregate([
-//     { $match: { 
-//       endpoint: new mongoose.Types.ObjectId(apiId),
-//       timestamp: { $gte: twentyFourHoursAgo } 
-//     }},
-//     {
-//       $group: {
-//         _id: { $dateToString: { format: "%Y-%m-%d %H:00", date: "$timestamp" } },
-//         count: { $sum: 1 }
-//       }
-//     },
-//     { $sort: { _id: 1 } },
-//     { $project: { timestamp: "$_id", count: 1, _id: 0 } }
-//   ]);
-// }
-
 async function getApiUsagePerMinute(apiId) {
   const twentyFourHoursAgo = get24HoursAgo();
   
