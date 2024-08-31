@@ -1,7 +1,7 @@
 const { ApiEndpoint, ApiCall } = require('../models/apiModel');
 const mongoose = require('mongoose');
 
-const rateLimitMiddleware = async (req, res, next) => {
+const apiRateLimiting = async (req, res, next) => {
   const path = req.path;
   const apiEndpoint = await ApiEndpoint.findOne({ path });
 
@@ -37,4 +37,4 @@ const rateLimitMiddleware = async (req, res, next) => {
   next();
 };
 
-module.exports = rateLimitMiddleware;
+module.exports = apiRateLimiting;

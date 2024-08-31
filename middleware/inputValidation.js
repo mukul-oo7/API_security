@@ -1,6 +1,6 @@
 const { ApiEndpoint } = require('../models/apiModel');  // Adjust the path as needed
 
-const apiValidationMiddleware = async (req, res, next) => {
+const inputValidation = async (req, res, next) => {
   const method = req.method;
   const fullPath = req.originalUrl.split('?')[0];  // Remove query string for matching
 
@@ -48,4 +48,4 @@ const apiValidationMiddleware = async (req, res, next) => {
   }
 };
 
-module.exports = apiValidationMiddleware;
+module.exports = inputValidation;

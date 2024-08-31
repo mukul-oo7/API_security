@@ -3,9 +3,9 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const mongoose = require('mongoose');
 const connectDb = require('./config/db');
 const { apiLoggerMiddleware, requestLogger } = require('./middleware/logger');
-const apiValidationMiddleware = require('./middleware/inputValidation');
+const inputValidation = require('./middleware/inputValidation');
 const sqlInjectionMiddleware = require('./middleware/sqlInjectionChecks');
-const rateLimitMiddleware = require('./middleware/apiRateLimiter');
+const apiRateLimiting = require('./middleware/apiRateLimiting');
 const cachingMiddleware = require('./middleware/cacheMiddleware');
 const cors = require("cors");
 
@@ -41,8 +41,8 @@ const proxyMiddleware = createProxyMiddleware({
   },
 });
 
-// app.use('/', apiValidationMiddleware);
-// app.use('/', rateLimitMiddleware);
+// app.use('/', inputValidation);
+// app.use('/', apiRateLimiting);
 // app.use('/', cachingMiddleware);
 // app.use('/', sqlInjectionMiddleware);
 app.use('/', apiLoggerMiddleware);

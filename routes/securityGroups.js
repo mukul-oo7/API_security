@@ -89,7 +89,13 @@ router.get('/securitygroups', async (req, res) => {
   try {
       // Find all security groups, projecting only the _id and description fields
       const securityGroups = await SecurityGroup.find({}, 'description _id name apis rules');
-      res.status(200).json(securityGroups);
+      const apiList = await ApiEndpoint.find({}, 'path request_methods _id');
+      const ruleList = await Rule.find({}, 'name _id');
+      res.status(200).json({
+        apiList,
+        ruleList,
+        securityGroups,
+      });
   } catch (error) {
       res.status(500).json({ error: 'An error occurred while fetching security groups' });
   }

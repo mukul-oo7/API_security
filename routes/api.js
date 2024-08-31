@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { ApiEndpoint, ApiCall } = require('../models/apiModel');
 const { SecurityGroup } = require('../models/securityGroup');
-const authMiddleware = require('../middleware/auth');
+const jwtValidation = require('../middleware/jwtValidation');
 
 // async function getApiEndpoints() {
 //   try {
@@ -98,7 +98,7 @@ async function getAvgResponseTime(apiId) {
   return result.length > 0 ? result[0].avgResponseTime : 0;
 }
 
-router.get('/api-hpm', authMiddleware, async (req, res) => {
+router.get('/api-hpm', jwtValidation, async (req, res) => {
   try {
     const pipeline = [
       {
@@ -145,7 +145,7 @@ router.get('/api-hpm', authMiddleware, async (req, res) => {
 
 
 // Main route handler
-router.get('/stats', authMiddleware, async (req, res) => {
+router.get('/stats', jwtValidation, async (req, res) => {
   try {
     // Get all API endpoints
     const apiEndpoints = await ApiEndpoint.find();
