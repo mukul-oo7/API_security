@@ -4,26 +4,29 @@ const { SecurityGroup, Rule } = require('../models/securityGroup');
 const { ApiEndpoint } = require('../models/apiModel');
 
 // Function to create a security group
-async function createSecurityGroup(name, description, apis, ruleIds) {
+async function createSecurityGroup(name, description, apiIds, ruleIds) {
   try {
     const newGroup = new SecurityGroup({
       name,
       description,
-      apis: [],
-      rules: []
+      apis: apiIds,
+      rules: ruleIds
     });
 
-    // Add APIs to the group
-    for (let apiId of apis) {
-      await addApiToSecurityGroup(newGroup, apiId);
-    }
-
-    // Add rules to the group
-    for (let ruleId of ruleIds) {
-      await addRuleToSecurityGroup(newGroup, ruleId);
-    }
-
     await newGroup.save();
+
+    // Update APIs to include this security group
+    await ApiEndpoint.updateMany(
+      { _id: { $in: apiIds } },
+      { $addToSet: { security_groups: newGroup._id } }
+    );
+
+    // Update Rules to include these APIs
+    await Rule.updateMany(
+      { _id: { $in: ruleIds } },
+      { $addToSet: { apis: { $each: apiIds } } }
+    );
+
     return newGroup;
   } catch (error) {
     console.error('Error creating security group:', error);
@@ -32,24 +35,29 @@ async function createSecurityGroup(name, description, apis, ruleIds) {
 }
 
 // Function to add an API to a security group
-async function addApiToSecurityGroup(securityGroup, apiId) {
+async function addApiToSecurityGroup(securityGroupId, apiId) {
   try {
-    const api = await ApiEndpoint.findById(apiId);
-    if (!api) {
-      throw new Error('API not found');
-    }
-    api.security_groups.push(securityGroup.name);
-    securityGroup.apis.push(api);
+    const [securityGroup, api] = await Promise.all([
+      SecurityGroup.findById(securityGroupId),
+      ApiEndpoint.findById(apiId)
+    ]);
 
-    // Update rules associated with this security group
-    for (let rule of securityGroup.rules) {
-      if (!rule.apis.includes(api._id)) {
-        rule.apis.push(api._id);
-        await rule.save();
-      }
+    if (!securityGroup || !api) {
+      throw new Error('Security group or API not found');
     }
 
-    await api.save();
+    securityGroup.apis.addToSet(apiId);
+    api.security_groups.addToSet(securityGroup._id);
+
+    // Update all rules in this security group to include this API
+    await Rule.updateMany(
+      { _id: { $in: securityGroup.rules } },
+      { $addToSet: { apis: apiId } }
+    );
+
+    await Promise.all([securityGroup.save(), api.save()]);
+
+    return securityGroup;
   } catch (error) {
     console.error('Error adding API to security group:', error);
     throw error;
@@ -57,22 +65,23 @@ async function addApiToSecurityGroup(securityGroup, apiId) {
 }
 
 // Function to add a rule to a security group
-async function addRuleToSecurityGroup(securityGroup, ruleId) {
+async function addRuleToSecurityGroup(securityGroupId, ruleId) {
   try {
-    const rule = await Rule.findById(ruleId);
-    if (!rule) {
-      throw new Error('Rule not found');
+    const [securityGroup, rule] = await Promise.all([
+      SecurityGroup.findById(securityGroupId),
+      Rule.findById(ruleId)
+    ]);
+
+    if (!securityGroup || !rule) {
+      throw new Error('Security group or Rule not found');
     }
-    
-    // Add all APIs from the security group to the rule
-    for (let api of securityGroup.apis) {
-      if (!rule.apis.includes(api._id)) {
-        rule.apis.push(api._id);
-      }
-    }
-    
-    await rule.save();
-    securityGroup.rules.push(rule);
+
+    securityGroup.rules.addToSet(ruleId);
+    rule.apis.push(...securityGroup.apis);
+
+    await Promise.all([securityGroup.save(), rule.save()]);
+
+    return securityGroup;
   } catch (error) {
     console.error('Error adding rule to security group:', error);
     throw error;
@@ -80,17 +89,29 @@ async function addRuleToSecurityGroup(securityGroup, ruleId) {
 }
 
 // Function to remove an API from a security group
-async function removeApiFromSecurityGroup(securityGroup, apiId) {
+async function removeApiFromSecurityGroup(securityGroupId, apiId) {
   try {
-    securityGroup.apis = securityGroup.apis.filter(api => api._id.toString() !== apiId);
-    
-    // Remove API from all rules associated with this security group
-    for (let rule of securityGroup.rules) {
-      rule.apis = rule.apis.filter(api => api.toString() !== apiId);
-      await rule.save();
+    const [securityGroup, api] = await Promise.all([
+      SecurityGroup.findById(securityGroupId),
+      ApiEndpoint.findById(apiId)
+    ]);
+
+    if (!securityGroup || !api) {
+      throw new Error('Security group or API not found');
     }
-    
-    await securityGroup.save();
+
+    securityGroup.apis.pull(apiId);
+    api.security_groups.pull(securityGroup.name);
+
+    // Remove this API from all rules in this security group
+    await Rule.updateMany(
+      { _id: { $in: securityGroup.rules } },
+      { $pull: { apis: apiId } }
+    );
+
+    await Promise.all([securityGroup.save(), api.save()]);
+
+    return securityGroup;
   } catch (error) {
     console.error('Error removing API from security group:', error);
     throw error;
@@ -98,10 +119,18 @@ async function removeApiFromSecurityGroup(securityGroup, apiId) {
 }
 
 // Function to remove a rule from a security group
-async function removeRuleFromSecurityGroup(securityGroup, ruleId) {
+async function removeRuleFromSecurityGroup(securityGroupId, ruleId) {
   try {
-    securityGroup.rules = securityGroup.rules.filter(rule => rule._id.toString() !== ruleId);
+    const securityGroup = await SecurityGroup.findById(securityGroupId);
+
+    if (!securityGroup) {
+      throw new Error('Security group not found');
+    }
+
+    securityGroup.rules.pull(ruleId);
     await securityGroup.save();
+
+    return securityGroup;
   } catch (error) {
     console.error('Error removing rule from security group:', error);
     throw error;
@@ -111,46 +140,33 @@ async function removeRuleFromSecurityGroup(securityGroup, ruleId) {
 // GET request to return all security groups with their description and ID
 router.get('/securitygroups', async (req, res) => {
   try {
-      // Find all security groups, projecting only the _id and description fields
-      const securityGroups = await SecurityGroup.aggregate([
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            description: 1,
-            apis: {
-              $map: {
-                input: "$apis",
-                as: "api",
-                in: {
-                  _id: "$$api._id",
-                  path: "$$api.path",
-                  request_methods: "$$api.request_methods"
-                }
-              }
-            },
-            rules: 1
-          }
-        }
-      ]);
-      const apiList = await ApiEndpoint.find({}, 'path request_methods _id');
-      const ruleList = await Rule.find({}, 'name _id');
-      res.status(200).json({
-        apiList,
-        ruleList,
-        securityGroups,
-      });
+    const securityGroups = await SecurityGroup.find({})
+    .populate({
+      path: 'rules',
+      select: 'name _id'
+    }).populate({
+      path: 'apis',
+      select: '_id path request_methods'
+    });
+
+    const apiList = await ApiEndpoint.find({}, 'path request_methods');
+    const ruleList = await Rule.find({}, 'name');
+
+    res.status(200).json({
+      apiList,
+      ruleList,
+      securityGroups
+    });
   } catch (error) {
-      res.status(500).json({ error: 'An error occurred while fetching security groups' });
+    res.status(500).json({ error: 'An error occurred while fetching security groups' });
   }
 });
-
 
 // Route to create a new security group
 router.post('/create-group', async (req, res) => {
   try {
-    const { name, description, apis, ruleIds } = req.body;
-    const newGroup = await createSecurityGroup(name, description, apis, ruleIds);
+    const { name, description, apis, rules } = req.body;
+    const newGroup = await createSecurityGroup(name, description, apis, rules);
     res.status(201).json(newGroup);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -162,13 +178,8 @@ router.post('/security-group/:groupId/api', async (req, res) => {
   try {
     const { groupId } = req.params;
     const { apiId } = req.body;
-    const group = await SecurityGroup.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ message: 'Security group not found' });
-    }
-    await addApiToSecurityGroup(group, apiId);
-    await group.save();
-    res.status(200).json(group);
+    const updatedGroup = await addApiToSecurityGroup(groupId, apiId);
+    res.status(200).json(updatedGroup);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -179,13 +190,8 @@ router.post('/security-group/:groupId/rule', async (req, res) => {
   try {
     const { groupId } = req.params;
     const { ruleId } = req.body;
-    const group = await SecurityGroup.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ message: 'Security group not found' });
-    }
-    await addRuleToSecurityGroup(group, ruleId);
-    await group.save();
-    res.status(200).json({ message: "Rules succesfully added"});
+    const updatedGroup = await addRuleToSecurityGroup(groupId, ruleId);
+    res.status(200).json(updatedGroup);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -195,12 +201,8 @@ router.post('/security-group/:groupId/rule', async (req, res) => {
 router.delete('/security-group/:groupId/api/:apiId', async (req, res) => {
   try {
     const { groupId, apiId } = req.params;
-    const group = await SecurityGroup.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ message: 'Security group not found' });
-    }
-    await removeApiFromSecurityGroup(group, apiId);
-    res.status(200).json(group);
+    const updatedGroup = await removeApiFromSecurityGroup(groupId, apiId);
+    res.status(200).json(updatedGroup);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -210,12 +212,8 @@ router.delete('/security-group/:groupId/api/:apiId', async (req, res) => {
 router.delete('/security-group/:groupId/rule/:ruleId', async (req, res) => {
   try {
     const { groupId, ruleId } = req.params;
-    const group = await SecurityGroup.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ message: 'Security group not found' });
-    }
-    await removeRuleFromSecurityGroup(group, ruleId);
-    res.status(200).json(group);
+    const updatedGroup = await removeRuleFromSecurityGroup(groupId, ruleId);
+    res.status(200).json(updatedGroup);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

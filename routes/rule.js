@@ -16,6 +16,7 @@ router.get('/rules', async (req, res) => {
         }).select('_id request_method path');
 
         return {
+          _id: rule._id,
           name: rule.name,
           description: rule.description,
           triggingFunction: rule.implementation,

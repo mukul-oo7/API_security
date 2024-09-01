@@ -100,7 +100,7 @@ async function getAvgResponseTime(apiId) {
   return result.length > 0 ? result[0].avgResponseTime : 0;
 }
 
-router.get('/api-hpm', jwtValidation, async (req, res) => {
+router.get('/api-hpm', async (req, res) => {
   try {
     const pipeline = [
       {
@@ -147,7 +147,7 @@ router.get('/api-hpm', jwtValidation, async (req, res) => {
 
 
 // Main route handler
-router.get('/stats', jwtValidation, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     // Get all API endpoints
     const apiEndpoints = await ApiEndpoint.find();

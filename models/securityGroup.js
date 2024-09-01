@@ -19,7 +19,7 @@ const RuleSchema = new Schema({
     required: true,
     trim: true
   },
-  apis: [{ type: Schema.Types.ObjectId, ref: 'ApiEndpoint' }]
+  apis: [{ type: Schema.Types.ObjectId, ref: 'apiendpoints' }]
 });
 
 // Define the SecurityGroup schema
@@ -35,8 +35,8 @@ const SecurityGroupSchema = new Schema({
     required: true,
     trim: true
   },
-  apis: [ApiEndpoint.schema],  // Use the correctly named schema reference
-  rules: [RuleSchema]
+  apis: [{type: Schema.Types.ObjectId, ref: 'apiendpoints'}],
+  rules: [{type: Schema.Types.ObjectId, ref: 'rules'}]
 }, { timestamps: true });
 
 const Rule = mongoose.model('rules', RuleSchema);
