@@ -41,6 +41,14 @@ async function addApiToSecurityGroup(securityGroup, apiId) {
     api.security_groups.push(securityGroup.name);
     securityGroup.apis.push(api);
 
+    // Update rules associated with this security group
+    for (let rule of securityGroup.rules) {
+      if (!rule.apis.includes(api._id)) {
+        rule.apis.push(api._id);
+        await rule.save();
+      }
+    }
+
     await api.save();
   } catch (error) {
     console.error('Error adding API to security group:', error);
@@ -55,6 +63,15 @@ async function addRuleToSecurityGroup(securityGroup, ruleId) {
     if (!rule) {
       throw new Error('Rule not found');
     }
+    
+    // Add all APIs from the security group to the rule
+    for (let api of securityGroup.apis) {
+      if (!rule.apis.includes(api._id)) {
+        rule.apis.push(api._id);
+      }
+    }
+    
+    await rule.save();
     securityGroup.rules.push(rule);
   } catch (error) {
     console.error('Error adding rule to security group:', error);
@@ -66,6 +83,13 @@ async function addRuleToSecurityGroup(securityGroup, ruleId) {
 async function removeApiFromSecurityGroup(securityGroup, apiId) {
   try {
     securityGroup.apis = securityGroup.apis.filter(api => api._id.toString() !== apiId);
+    
+    // Remove API from all rules associated with this security group
+    for (let rule of securityGroup.rules) {
+      rule.apis = rule.apis.filter(api => api.toString() !== apiId);
+      await rule.save();
+    }
+    
     await securityGroup.save();
   } catch (error) {
     console.error('Error removing API from security group:', error);

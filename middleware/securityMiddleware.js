@@ -1,14 +1,15 @@
 const mongoose = require('mongoose');
 const { ApiEndpoint } = require('../models/apiModel');
 const { SecurityGroup } = require('../models/securityGroup');
-const jwtValidation = require('./jwtValidation');
-const apiRateLimiting = require('./apiRateLimiting');
-const inputValidation = require('./inputValidation');
-const xssChecks = require('./xssChecks');
-const caching = require('./caching');
-const sqlInjectionCheck = require('./sqlInjectionChecks');
-const allowListIP = require('./allowListIP');
-const apiLogger = require('./apiLogger');
+
+const jwtValidation = require('./rules/jwtValidation');
+const apiRateLimiting = require('./rules/apiRateLimiting');
+const inputValidation = require('./rules/inputValidation');
+const xssChecks = require('./rules/xssChecks');
+const caching = require('./rules/caching');
+const sqlInjectionCheck = require('./rules/sqlInjectionChecks');
+const allowListIP = require('./rules/allowListIP');
+const {apiLogger} = require('./rules/apiLogger');
 
 // Create a mapping of rule names to their implementations
 const ruleImplementations = {
@@ -50,7 +51,7 @@ const securityMiddleware = async (req, res, next) => {
       if (ruleImplementations[ruleName]) {
         try {
           await ruleImplementations[ruleName](req, res, () => {});
-          console.log(`${ruleImplementations[ruleName]} applied`)
+          console.log(`executing ${ruleName}`);
         } catch (error) {
           console.error(`Error executing rule ${ruleName}:`, error);
         }

@@ -1,4 +1,4 @@
-const { ApiEndpoint } = require('../models/apiModel');
+const { ApiEndpoint } = require('../../models/apiModel');
 const NodeCache = require('node-cache');
 
 // Create a new cache instance

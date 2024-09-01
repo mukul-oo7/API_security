@@ -1,4 +1,4 @@
-const { ApiEndpoint } = require('../models/apiModel');  // Adjust the path as needed
+const { ApiEndpoint } = require('../../models/apiModel');  // Adjust the path as needed
 
 const inputValidation = async (req, res, next) => {
   const method = req.method;

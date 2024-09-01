@@ -2,12 +2,9 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const mongoose = require('mongoose');
 const connectDb = require('./config/db');
-const { apiLogger, requestLogger } = require('./middleware/apiLogger');
-const inputValidation = require('./middleware/inputValidation');
-const sqlInjectionCheck = require('./middleware/sqlInjectionChecks');
-const apiRateLimiting = require('./middleware/apiRateLimiting');
-const caching = require('./middleware/caching');
+
 const securityMiddleware = require('./middleware/securityMiddleware');
+const { requestLogger } = require('./middleware/rules/apiLogger');
 const cors = require("cors");
 
 const app = express();
@@ -23,6 +20,8 @@ const TARGET = 'http://localhost:3000';
 app.use(cors());
 
 app.use(requestLogger);
+
+
 app.use('/shield', express.json());
 app.use('/shield', require('./routes/auth'));
 app.use('/shield', require('./routes/api'));

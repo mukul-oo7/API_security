@@ -1,5 +1,5 @@
 // allowListIP.js
-const { ApiEndpoint } = require('../models/apiModel');
+const { ApiEndpoint } = require('../../models/apiModel');
 
 // Middleware to handle IP whitelisting and blacklisting
 const allowListIP = async (req, res, next) => {

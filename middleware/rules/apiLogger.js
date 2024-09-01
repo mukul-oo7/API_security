@@ -1,4 +1,4 @@
-const { ApiEndpoint, ApiCall } = require('../models/apiModel');  // Adjust the path as needed
+const { ApiEndpoint, ApiCall } = require('../../models/apiModel');  // Adjust the path as needed
 
 const apiLogger = async (req, res, next) => {
   const startTime = Date.now();

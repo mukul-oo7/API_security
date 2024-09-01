@@ -1,4 +1,4 @@
-const { ApiEndpoint, ApiCall } = require('../models/apiModel');
+const { ApiEndpoint, ApiCall } = require('../../models/apiModel');
 const mongoose = require('mongoose');
 
 const apiRateLimiting = async (req, res, next) => {

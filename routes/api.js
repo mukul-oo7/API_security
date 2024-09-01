@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 const { ApiEndpoint, ApiCall } = require('../models/apiModel');
 const { SecurityGroup, Rule } = require('../models/securityGroup');
-const jwtValidation = require('../middleware/jwtValidation');
+const jwtValidation = require('../middleware/rules/jwtValidation');
 
 // async function getApiEndpoints() {
 //   try {
