@@ -13,7 +13,7 @@ const allowListIP = async (req, res, next) => {
 
     const clientIp = req.ip; // Get the client's IP address
     const ipv4ClientIp = clientIp.includes(':') ? clientIp.split(':').pop() : clientIp;
-    console.log(ipv4ClientIp);
+    // console.log(ipv4ClientIp);
 
     if (apiEndpoint.allow_secured_ip_only) {
       const isWhitelisted = apiEndpoint.whitelist.includes(ipv4ClientIp);

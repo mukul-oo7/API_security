@@ -26,26 +26,31 @@ const ruleImplementations = {
 const securityMiddleware = async (req, res, next) => {
   try {
     const apiEndpoint = await ApiEndpoint.findOne({ path: req.originalUrl, request_methods: req.method });
-
-    if (!apiEndpoint || !apiEndpoint.security_groups) {
-      console.log('No security groups found for this endpoint');
+    if (!apiEndpoint) {
       return next();
     }
 
+    // Find all security groups that include this API
     const securityGroups = await SecurityGroup.find({
-      name: { $in: apiEndpoint.security_groups }
-    }).populate('rules');
+      apis: apiEndpoint._id
+    }).populate({
+      path: 'rules',
+      model: 'rules'
+    });
 
-    console.log(securityGroups);
-
+    // Collect unique rules
     const uniqueRules = new Set();
     securityGroups.forEach(group => {
       group.rules.forEach(rule => {
-        uniqueRules.add(rule.implementation);
+        if (rule && rule.implementation) {
+          uniqueRules.add(rule.implementation);
+        } else {
+          console.log('Warning: Invalid rule object encountered');
+        }
       });
     });
 
-    console.log(uniqueRules);
+    // console.log(uniqueRules);
 
     for (const ruleName of uniqueRules) {
       if (ruleImplementations[ruleName]) {
