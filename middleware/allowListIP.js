@@ -4,8 +4,7 @@ const { ApiEndpoint } = require('../models/apiModel');
 // Middleware to handle IP whitelisting and blacklisting
 const allowListIP = async (req, res, next) => {
   try {
-    const endpointPath = req.route.path; // Or however you get the current endpoint
-    const apiEndpoint = await ApiEndpointSchema.findOne({ path: endpointPath });
+    const apiEndpoint = await ApiEndpoint.findOne({ path: req.originalUrl, request_methods: req.method });
 
     if (!apiEndpoint) {
       // If no matching endpoint is found, allow the request to proceed
@@ -13,10 +12,12 @@ const allowListIP = async (req, res, next) => {
     }
 
     const clientIp = req.ip; // Get the client's IP address
+    const ipv4ClientIp = clientIp.includes(':') ? clientIp.split(':').pop() : clientIp;
+    console.log(ipv4ClientIp);
 
     if (apiEndpoint.allow_secured_ip_only) {
-      const isWhitelisted = apiEndpoint.whitelist.includes(clientIp);
-      const isBlacklisted = apiEndpoint.blacklist.includes(clientIp);
+      const isWhitelisted = apiEndpoint.whitelist.includes(ipv4ClientIp);
+      const isBlacklisted = apiEndpoint.blacklist.includes(ipv4ClientIp);
 
       if (isBlacklisted) {
         return res.status(403).json({ message: 'Access denied: IP is blacklisted.' });
@@ -27,7 +28,7 @@ const allowListIP = async (req, res, next) => {
       }
     } else {
       // If `allow_secured_ip_only` is false, just block if blacklisted
-      if (apiEndpoint.blacklist.includes(clientIp)) {
+      if (apiEndpoint.blacklist.includes(ipv4ClientIp)) {
         return res.status(403).json({ message: 'Access denied: IP is blacklisted.' });
       }
     }

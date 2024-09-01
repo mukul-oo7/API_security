@@ -47,5 +47,5 @@ const ApiCall = mongoose.model('apicalls', apiCallSchema);
 
 module.exports = {
   ApiCall,
-  ApiEndpoint,
+  ApiEndpoint
 };

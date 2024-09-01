@@ -1,6 +1,6 @@
 const { ApiEndpoint, ApiCall } = require('../models/apiModel');  // Adjust the path as needed
 
-const apiLoggerMiddleware = async (req, res, next) => {
+const apiLogger = async (req, res, next) => {
   const startTime = Date.now();
   const method = req.method;
   const fullPath = req.originalUrl;
@@ -90,5 +90,5 @@ const requestLogger = (req, res, next) => {
 
 module.exports = {
   requestLogger, 
-  apiLoggerMiddleware
+  apiLogger
 };

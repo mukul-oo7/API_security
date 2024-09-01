@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+
 const { ApiEndpoint, ApiCall } = require('../models/apiModel');
-const { SecurityGroup } = require('../models/securityGroup');
+const { SecurityGroup, Rule } = require('../models/securityGroup');
 const jwtValidation = require('../middleware/jwtValidation');
 
 // async function getApiEndpoints() {
@@ -194,18 +196,47 @@ router.get('/stats', jwtValidation, async (req, res) => {
   }
 });
 
+async function removeDuplicateApisFromRules() {
+  try {
+    console.log('Starting removal of duplicate APIs from Rules...');
+
+    // Find all rules
+    const rules = await Rule.find({});
+
+    for (const rule of rules) {
+      // Convert ObjectIds to strings for easier comparison
+      const uniqueApis = [...new Set(rule.apis.map(api => api.toString()))];
+
+      // Convert back to ObjectIds
+      const uniqueApiIds = uniqueApis.map(api => mongoose.Types.ObjectId(api));
+
+      // Update the rule only if there were duplicates
+      if (uniqueApiIds.length !== rule.apis.length) {
+        rule.apis = uniqueApiIds;
+        await rule.save();
+        console.log(`Removed duplicates from Rule: ${rule._id}`);
+      }
+    }
+
+    console.log('Duplicate API removal completed successfully.');
+  } catch (error) {
+    console.error('Error removing duplicate APIs:', error);
+  }
+}
+
+
 router.get("/init", async (req, res) => {
   try {
     // Update all documents by setting rate_limit_pm to 20
-    const endpoints = await ApiEndpoint.find({}, 'path _id');  	
+    // await removeDuplicateApisFromRules();
+    // const endpoints = await ApiEndpoint.find({}, 'path _id');  	
 
-    return res.status(200).send({endpoints});
+    // return res.status(200).send({endpoints});
   } catch (error) {
     console.error('Error updating rate limit for all endpoints:', error.message);
     
     return res.status(500).send({message: "internal server error"});
   }
-
 });
 
 module.exports = router;
