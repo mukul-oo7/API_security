@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+
 const { ApiEndpoint, ApiCall } = require('../models/apiModel');
-const { SecurityGroup } = require('../models/securityGroup');
-const authMiddleware = require('../middleware/auth');
+const { SecurityGroup, Rule } = require('../models/securityGroup');
+const jwtValidation = require('../middleware/rules/jwtValidation');
 
 // async function getApiEndpoints() {
 //   try {
@@ -98,7 +100,7 @@ async function getAvgResponseTime(apiId) {
   return result.length > 0 ? result[0].avgResponseTime : 0;
 }
 
-router.get('/api-hpm', authMiddleware, async (req, res) => {
+router.get('/api-hpm', async (req, res) => {
   try {
     const pipeline = [
       {
@@ -145,7 +147,7 @@ router.get('/api-hpm', authMiddleware, async (req, res) => {
 
 
 // Main route handler
-router.get('/api-stats', authMiddleware, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     // Get all API endpoints
     const apiEndpoints = await ApiEndpoint.find();
@@ -174,7 +176,8 @@ router.get('/api-stats', authMiddleware, async (req, res) => {
       base_url: api.base_url,
       hit_count: await getHitCount(api._id),
       avg_response_time: await getAvgResponseTime(api._id),
-      isNew: api.is_new
+      isNew: api.is_new,
+      _id: api._id
     })));
 
     // Prepare final response
@@ -190,6 +193,49 @@ router.get('/api-stats', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error in /api-stats route:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+async function removeDuplicateApisFromRules() {
+  try {
+    console.log('Starting removal of duplicate APIs from Rules...');
+
+    // Find all rules
+    const rules = await Rule.find({});
+
+    for (const rule of rules) {
+      // Convert ObjectIds to strings for easier comparison
+      const uniqueApis = [...new Set(rule.apis.map(api => api.toString()))];
+
+      // Convert back to ObjectIds
+      const uniqueApiIds = uniqueApis.map(api => mongoose.Types.ObjectId(api));
+
+      // Update the rule only if there were duplicates
+      if (uniqueApiIds.length !== rule.apis.length) {
+        rule.apis = uniqueApiIds;
+        await rule.save();
+        console.log(`Removed duplicates from Rule: ${rule._id}`);
+      }
+    }
+
+    console.log('Duplicate API removal completed successfully.');
+  } catch (error) {
+    console.error('Error removing duplicate APIs:', error);
+  }
+}
+
+
+router.get("/init", async (req, res) => {
+  try {
+    // Update all documents by setting rate_limit_pm to 20
+    // await removeDuplicateApisFromRules();
+    // const endpoints = await ApiEndpoint.find({}, 'path _id');  	
+
+    // return res.status(200).send({endpoints});
+  } catch (error) {
+    console.error('Error updating rate limit for all endpoints:', error.message);
+    
+    return res.status(500).send({message: "internal server error"});
   }
 });
 

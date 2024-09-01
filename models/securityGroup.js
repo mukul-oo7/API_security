@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;  // Extract Schema from mongoose
 const { ApiEndpoint } = require('./apiModel');  // Ensure the correct import name
 
 // Define the Rule schema
-const RuleSchema = new mongoose.Schema({
+const RuleSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -17,11 +18,12 @@ const RuleSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
-  }
+  },
+  apis: [{ type: Schema.Types.ObjectId, ref: 'apiendpoints' }]
 });
 
 // Define the SecurityGroup schema
-const SecurityGroupSchema = new mongoose.Schema({
+const SecurityGroupSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -33,12 +35,12 @@ const SecurityGroupSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  apis: [ApiEndpoint.schema],  // Use the correctly named schema reference
-  rules: [RuleSchema]
+  apis: [{type: Schema.Types.ObjectId, ref: 'apiendpoints'}],
+  rules: [{type: Schema.Types.ObjectId, ref: 'rules'}]
 }, { timestamps: true });
 
-const Rule = mongoose.model('Rule', RuleSchema);
-const SecurityGroup = mongoose.model('SecurityGroup', SecurityGroupSchema);
+const Rule = mongoose.model('rules', RuleSchema);
+const SecurityGroup = mongoose.model('securitygroups', SecurityGroupSchema);
 
 module.exports = { 
     Rule, 

@@ -2,7 +2,9 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const mongoose = require('mongoose');
 const connectDb = require('./config/db');
-const { logRegisteredApiCall, requestLogger } = require('./middleware/logger');
+
+const securityMiddleware = require('./middleware/securityMiddleware');
+const { requestLogger } = require('./middleware/rules/apiLogger');
 const cors = require("cors");
 
 const app = express();
@@ -15,13 +17,17 @@ require('./models/securityGroup');
 
 const TARGET = 'http://localhost:3000';
 
-// app.use(cors());
-// app.use(logRegisteredApiCall);
+app.use(cors());
+
 app.use(requestLogger);
+
 
 app.use('/shield', express.json());
 app.use('/shield', require('./routes/auth'));
 app.use('/shield', require('./routes/api'));
+app.use('/shield', require('./routes/api-details'));
+app.use('/shield', require('./routes/securityGroups'));
+app.use('/shield', require('./routes/rule'));
 
 const proxyMiddleware = createProxyMiddleware({
   target: TARGET,
@@ -36,6 +42,12 @@ const proxyMiddleware = createProxyMiddleware({
   },
 });
 
+// app.use('/', inputValidation);
+// app.use('/', apiRateLimiting);
+// app.use('/', caching);
+// app.use('/', sqlInjectionCheck);
+// app.use('/', apiLogger);
+app.use('/', securityMiddleware);
 app.use('/', proxyMiddleware);
 
 const PROXY_PORT = 8080;
